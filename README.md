@@ -6,6 +6,13 @@
 2. Put the resource into your resource directory
 3. Add "start mojito-esx_chopsop" to your server.cfg
 
+# Dependencies
+
+-es_extended
+-esx_policejob
+-mythic_progbar
+-gcphone (This is used to notify police, can be removed easily)
+
 # Showcase 
 
 https://youtu.be/q2qHYX2c7QI
