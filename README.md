@@ -40,3 +40,6 @@ You can sell these items to the scrap trader for dirty money or cash (Configurea
 
 Configureable location (Chop shop and Scrap Trader)
 You can configure the prices for each item
+
+# Credits
+This script was made by Mojito, you may use this on any server but do not sell or redistribute this script in any way.
