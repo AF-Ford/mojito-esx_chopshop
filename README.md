@@ -9,8 +9,11 @@
 # Dependencies
 
 -es_extended
+
 -esx_policejob
+
 -mythic_progbar
+
 -gcphone (This is used to notify police, can be removed easily)
 
 # Showcase 
@@ -20,10 +23,15 @@ https://youtu.be/q2qHYX2c7QI
 # Features
 
 Chop any vehicle for these items:
+
 -Scrap Aluminium
+
 -Car Stereo
+
 -Airbag
+
 -Car Battery
+
 -Wheel Rims 
 
 After chopping a vehicle there is a 33% chance that the police are notified.
