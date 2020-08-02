@@ -24,6 +24,13 @@ AddEventHandler('Payout', function()
 	end
 end)
 
+RegisterServerEvent('RemoveOwnedVehicle')
+AddEventHandler('RemoveOwnedVehicle',function(plate)
+	MySQL.Async.execute('DELETE FROM owned_vehicles WHERE plate = @plate', {
+		['@plate'] = plate
+	})
+end)
+
 ScrapTraderPrices = {
     aluminium = 100,
     airbag = 250,
