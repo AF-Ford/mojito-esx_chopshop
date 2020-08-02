@@ -1,35 +1,6 @@
-ESX = nil
-GiveDirty = true
-
-
-TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-
-
-RegisterServerEvent('Payout')
-AddEventHandler('Payout', function()
-	local src = source
-	local xPlayer = ESX.GetPlayerFromId(source)
-	if xPlayer == xPlayer then
-		xPlayer.addInventoryItem('aluminium', math.random(2, 6))
-		xPlayer.addInventoryItem('radio', 1)
-		xPlayer.addInventoryItem('battery', 1)
-		xPlayer.addInventoryItem('wheel_rim', math.random(1,4))
-		xPlayer.addInventoryItem('airbag', 1)
-		price = math.random(1200,10000) 
-		if GiveDirty then
-			xPlayer.addAccountMoney('black_money', price)
-		else
-			xPlayer.addMoney(price)
-		end
-	end
-end)
-
-RegisterServerEvent('RemoveOwnedVehicle')
-AddEventHandler('RemoveOwnedVehicle',function(plate)
-	MySQL.Async.execute('DELETE FROM owned_vehicles WHERE plate = @plate', {
-		['@plate'] = plate
-	})
-end)
+-- Config
+local ChopShop = vector3(602.38,-438.98,24.76)
+local ScrapTrader = vector3(-429.33,-1728.33,19.78)
 
 ScrapTraderPrices = {
     aluminium = 100,
@@ -39,30 +10,190 @@ ScrapTraderPrices = {
     battery = 440,
 }
 
-RegisterServerEvent('sellScrap')
-AddEventHandler('sellScrap', function(itemName, amount)
-	local xPlayer = ESX.GetPlayerFromId(source)
-	local price = ScrapTraderPrices[itemName]
-	local xItem = xPlayer.getInventoryItem(itemName)
+ESX = nil
 
-	if not price then
-		print(('mojito-esx_chopshop %s attempted to sell an invalid item!'):format(xPlayer.identifier))
-		return
+Citizen.CreateThread(function()
+	while ESX == nil do
+		TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+		Citizen.Wait(0)
 	end
 
-	if xItem.count < amount then
-		xPlayer.showNotification("~r~You do not have enough of this item.")
-		return
+	while ESX.GetPlayerData().job == nil do
+		Citizen.Wait(10)
 	end
 
-	price = ESX.Math.Round(price * amount)
-
-	if GiveDirty then
-		xPlayer.addAccountMoney('black_money', price)
-	else
-		xPlayer.addMoney(price)
-	end
-
-	xPlayer.removeInventoryItem(xItem.name, amount)
-	xPlayer.showNotification('you\'ve sold ~b~'..amount..'x~s~ ~y~'..xItem.name..'~s~ for ~g~$'..price..'~s~', amount, xItem.label, ESX.Math.GroupDigits(price))
+	PlayerData = ESX.GetPlayerData()
 end)
+
+local source = GetPlayerPed( -1 )
+
+TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+
+Citizen.CreateThread(function()
+    while true do
+        local ped = GetPlayerPed(-1)
+        local playerCoords = GetEntityCoords(PlayerPedId())
+        local dist =  #(vector3(ChopShop['x'],ChopShop['y'],ChopShop['z']) - playerCoords)
+		if dist <= 5 and IsPedInAnyVehicle(ped, false) then
+			DrawText3Ds(ChopShop['x'],ChopShop['y'],ChopShop['z'],'Press ~r~[E]~s~ To Chop This Vehicle')
+			if IsControlJustPressed(2, 86) then
+				ChopVehicle()
+				vehicle = GetVehiclePedIsIn(ped, false)
+				plate = GetVehicleNumberPlateText(vehicle)
+				TriggerServerEvent('RemoveOwnedVehicle', plate)
+			end
+		end
+	Citizen.Wait(0)
+    end
+end)
+
+RegisterNetEvent('DeleteEntity')
+AddEventHandler( 'DeleteEntity', function()
+    local ped = GetPlayerPed( -1 )
+    local vehicle = GetVehiclePedIsIn( ped, false )
+    if IsPedSittingInAnyVehicle( ped ) then 
+        SetEntityAsMissionEntity( vehicle, true, true )
+        TaskLeaveVehicle(PlayerPedId(), vehicle, 0)
+        Citizen.Wait(2000)
+        NetworkFadeOutEntity(vehicle, true,false)
+        Citizen.Wait(2000)
+        ESX.Game.DeleteVehicle(vehicle)
+        notifyCops = math.random(0,3)--Change odds of police being called here 
+        if notifyCops == 2 then
+           notifyPolice()
+        end
+    end 
+end)
+
+ChopVehicle = function(hash, source)
+    	exports['mythic_progbar']:Progress({
+		name = "Chop",
+		duration = 20000,
+		label = "Chopping in progress",
+		useWhileDead = false,
+		canCancel = true,
+		controlDisables = {
+			disableMovement = true,
+			disableCarMovement = true,
+			disableMouse = false,
+			disableCombat = true,
+		},
+	}, function(status)
+		if not status then
+			TriggerEvent('DeleteEntity')
+			TriggerServerEvent('Payout', source)
+		end
+	end)
+end
+
+--Text police
+function notifyPolice()
+	local playerPed = GetPlayerPed(-1)
+	local coords	= GetEntityCoords(playerPed)
+	ESX.ShowNotification('Somebody has spotted you and reported you to the police')
+	TriggerServerEvent('esx_phone:send', 'police', 'Somebody has just chopped a vehicle', false, {
+		x = coords.x,
+		y = coords.y,
+		z = coords.z
+	})
+end
+
+--Scrap Trader
+local menuOpen = false
+local wasOpen = false
+
+Citizen.CreateThread(function()
+	while true do
+		Citizen.Wait(0)
+		local playerPed = PlayerPedId()
+		local coords = GetEntityCoords(playerPed)
+		local dist =  #(vector3(ScrapTrader['x'],ScrapTrader['y'],ScrapTrader['z']) - coords)
+		if dist <= 2 then
+			DrawText3Ds(ScrapTrader['x'],ScrapTrader['y'],ScrapTrader['z'],"Press ~r~[E]~s~ to talk with the ~r~ Scrap Trader")
+			if not menuOpen then
+				if IsControlJustReleased(0, 38) then
+					wasOpen = true
+					OpenScrapShop()
+				end
+			else
+				Citizen.Wait(500)
+			end
+		end
+	end
+end)
+
+function OpenScrapShop()
+	ESX.UI.Menu.CloseAll()
+	local elements = {}
+	menuOpen = true
+
+	for k, v in pairs(ESX.GetPlayerData().inventory) do
+		local price = ScrapTraderPrices[v.name]
+
+		if price and v.count > 0 then
+			table.insert(elements, {
+				label = ('%s - <span style="color:green;">%s</span>'):format(v.label, '$'..price, ESX.Math.GroupDigits(price)),
+				name = v.name,
+				price = price,
+
+				type = 'slider',
+				value = 1,
+				min = 1,
+				max = v.count
+			})
+		end
+	end
+
+	ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'scrap_trader', {
+		title    = 'Scrap Trader',
+		align    = 'top-left',
+		elements = elements
+	}, function(data, menu)
+		TriggerServerEvent('sellScrap', data.current.name, data.current.value)
+	end, function(data, menu)
+		menu.close()
+		menuOpen = false
+	end)
+end
+
+AddEventHandler('onResourceStop', function(resource)
+	if resource == GetCurrentResourceName() then
+		if menuOpen then
+			ESX.UI.Menu.CloseAll()
+		end
+	end
+end)
+
+--Creates NPC for Scrap Trader
+Citizen.CreateThread(function()
+    npcHash = GetHashKey("mp_m_waremech_01")
+    RequestModel(npcHash)
+    while not HasModelLoaded(npcHash) do
+        Wait(1)
+    end
+    meth_dealer_seller = CreatePed(1, npcHash, -429.33,-1728.33,18.78, 79.12, false, true)
+    SetBlockingOfNonTemporaryEvents(meth_dealer_seller, true)
+    SetPedDiesWhenInjured(meth_dealer_seller, false)
+    SetPedCanPlayAmbientAnims(meth_dealer_seller, true)
+    SetPedCanRagdollFromPlayerImpact(meth_dealer_seller, false)
+    SetEntityInvincible(meth_dealer_seller, true)
+    FreezeEntityPosition(meth_dealer_seller, true)
+    TaskStartScenarioInPlace(meth_dealer_seller, "WORLD_HUMAN_SMOKING", 0, true);
+end)
+--End of Scrap Trader 
+
+DrawText3Ds = function(x,y,z, text)
+    local onScreen,_x,_y=World3dToScreen2d(x,y,z)
+	local factor = #text / 370
+	local px,py,pz=table.unpack(GetGameplayCamCoords())
+	
+	SetTextScale(0.35, 0.35)
+	SetTextFont(4)
+	SetTextProportional(1)
+	SetTextColour(255, 255, 255, 215)
+	SetTextEntry("STRING")
+	SetTextCentre(1)
+	AddTextComponentString(text)
+	DrawText(_x,_y)
+	DrawRect(_x,_y + 0.0125, 0.015 + factor, 0.03, 0, 0, 0, 120)
+end
