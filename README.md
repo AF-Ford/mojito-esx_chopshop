@@ -6,6 +6,13 @@
 2. Put the resource into your resource directory
 3. Add "start mojito-esx_chopsop" to your server.cfg
 
+# Changelog
+
+Update 1.1 02/08/2020: 
+
+-Chopshop now removes vehicle from database when chopped
+-Fixed a few errors from previous version
+
 # Dependencies
 
 -es_extended
@@ -21,6 +28,8 @@
 https://youtu.be/q2qHYX2c7QI
 
 # Features
+
+When a player owned vehicle is chopped, the vehicle is removed from the database
 
 Chop any vehicle for these items:
 
