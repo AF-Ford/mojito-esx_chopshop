@@ -10,6 +10,11 @@ ScrapTraderPrices = {
     battery = 440,
 }
 
+carblacklist = {
+	"ADDER",
+	"ZENTORNO",
+}
+
 ESX = nil
 
 Citizen.CreateThread(function()
@@ -34,13 +39,19 @@ Citizen.CreateThread(function()
         local ped = GetPlayerPed(-1)
         local playerCoords = GetEntityCoords(PlayerPedId())
         local dist =  #(vector3(ChopShop['x'],ChopShop['y'],ChopShop['z']) - playerCoords)
-		if dist <= 5 and IsPedInAnyVehicle(ped, false) then
+		if dist <= 7 and IsPedInAnyVehicle(ped, false) then
 			DrawText3Ds(ChopShop['x'],ChopShop['y'],ChopShop['z'],'Press ~r~[E]~s~ To Chop This Vehicle')
 			if IsControlJustPressed(2, 86) then
-				ChopVehicle()
 				vehicle = GetVehiclePedIsIn(ped, false)
 				plate = GetVehicleNumberPlateText(vehicle)
-				TriggerServerEvent('RemoveOwnedVehicle', plate)
+				carModel = GetEntityModel(vehicle)
+				carName = GetDisplayNameFromVehicleModel(carModel)
+				if not isCarBlacklisted(carName) then
+					ChopVehicle()
+					TriggerServerEvent('RemoveOwnedVehicle', plate)
+				else
+					exports['mythic_notify']:SendAlert('error', "Sorry, I won't take this model")
+				end
 			end
 		end
 	Citizen.Wait(0)
@@ -64,6 +75,16 @@ AddEventHandler( 'DeleteEntity', function()
         end
     end 
 end)
+
+function isCarBlacklisted(carName)
+	for _, blacklistedCar in pairs(carblacklist) do
+		if carName == blacklistedCar then
+			return true
+		end
+	end
+
+	return false
+end
 
 ChopVehicle = function(hash, source)
     	exports['mythic_progbar']:Progress({
@@ -171,14 +192,23 @@ Citizen.CreateThread(function()
     while not HasModelLoaded(npcHash) do
         Wait(1)
     end
-    meth_dealer_seller = CreatePed(1, npcHash, -429.33,-1728.33,18.78, 79.12, false, true)
-    SetBlockingOfNonTemporaryEvents(meth_dealer_seller, true)
-    SetPedDiesWhenInjured(meth_dealer_seller, false)
-    SetPedCanPlayAmbientAnims(meth_dealer_seller, true)
-    SetPedCanRagdollFromPlayerImpact(meth_dealer_seller, false)
-    SetEntityInvincible(meth_dealer_seller, true)
-    FreezeEntityPosition(meth_dealer_seller, true)
-    TaskStartScenarioInPlace(meth_dealer_seller, "WORLD_HUMAN_SMOKING", 0, true);
+    scrap_trader = CreatePed(1, npcHash, -429.33,-1728.33,18.78, 79.12, false, true)
+    SetBlockingOfNonTemporaryEvents(scrap_trader, true)
+    SetPedDiesWhenInjured(scrap_trader, false)
+    SetPedCanPlayAmbientAnims(scrap_trader, true)
+    SetPedCanRagdollFromPlayerImpact(scrap_trader, false)
+    SetEntityInvincible(scrap_trader, true)
+    FreezeEntityPosition(scrap_trader, true)
+	TaskStartScenarioInPlace(scrap_trader, "WORLD_HUMAN_SMOKING", 0, true);
+	
+	chopshop_ped = CreatePed(1, npcHash, 596.6,-437.89,23.74,258.34, false, true)
+    SetBlockingOfNonTemporaryEvents(chopshop_ped, true)
+    SetPedDiesWhenInjured(chopshop_ped, false)
+    SetPedCanPlayAmbientAnims(chopshop_ped, true)
+    SetPedCanRagdollFromPlayerImpact(chopshop_ped, false)
+    SetEntityInvincible(chopshop_ped, true)
+    FreezeEntityPosition(chopshop_ped, true)
+    TaskStartScenarioInPlace(chopshop_ped, "world_human_leaning", 0, true);
 end)
 --End of Scrap Trader 
 
