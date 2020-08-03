@@ -13,6 +13,10 @@ Update 1.1 02/08/2020:
 -Chopshop now removes vehicle from database when chopped
 -Fixed a few errors from previous version
 
+Update 1.2 03/08/2020
+
+-Added model blacklist
+
 # Dependencies
 
 -es_extended
