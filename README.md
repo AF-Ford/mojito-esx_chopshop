@@ -25,6 +25,8 @@ Update 1.2 03/08/2020
 
 -mythic_progbar
 
+-mythic_notify
+
 -gcphone (This is used to notify police, can be removed easily)
 
 # Showcase 
@@ -34,6 +36,8 @@ https://youtu.be/q2qHYX2c7QI
 # Features
 
 When a player owned vehicle is chopped, the vehicle is removed from the database
+
+Certain vehicles can be blacklisted from being chopped.
 
 Chop any vehicle for these items:
 
